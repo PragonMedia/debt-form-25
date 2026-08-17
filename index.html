@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en_US">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daily Savers</title>
+    <link rel="icon" href="./images/debt-logo-light.png" type="image/png" />
+    <link
+      rel="shortcut icon"
+      href="./images/debt-logo-light.png"
+      type="image/png"
+    />
+
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=AW-16921817895"
+    ></script>
+
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-MC55FSL5");
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <script>
+      var PLANCOMPARE_BASE = "https://plancompared.com/";
+      var PLANCOMPARE_REDIRECT_DELAY_MS = 7000;
+      var plancompareRedirectTimerId = null;
+
+      function isMobileForPlancompareRedirect() {
+        if (typeof window.innerWidth === "number" && window.innerWidth < 768) {
+          return true;
+        }
+        var ua = navigator.userAgent || "";
+        return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+          ua.toLowerCase(),
+        );
+      }
+
+      function passesPlancompareUrlGate() {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get("key") !== "X184GA") return false;
+        var mb = params.get("mb");
+        if (mb == null || String(mb).trim() === "") return false;
+        return true;
+      }
+
+      function trackGTG(e) {
+        e.preventDefault();
+
+        const phoneLink = document.getElementById("phone-number").href;
+
+        // Always push GTM event first
+        window.dataLayer = window.dataLayer || [];
+        dataLayer.push({ event: "gtg_clicked" });
+
+        // Fire Facebook pixel safely
+        try {
+          if (typeof fbq === "function") {
+            fbq("track", "Lead");
+          }
+        } catch (e) {}
+
+        // When gtg is absent (null), URL has key=X184GA + mb, and user is mobile: redirect to plancompared.com with all URL params after 7s (aligned with test.js)
+        if (
+          localStorage.getItem("gtg") === null &&
+          passesPlancompareUrlGate() &&
+          isMobileForPlancompareRedirect()
+        ) {
+          if (plancompareRedirectTimerId != null) {
+            clearTimeout(plancompareRedirectTimerId);
+            plancompareRedirectTimerId = null;
+          }
+          plancompareRedirectTimerId = setTimeout(function () {
+            plancompareRedirectTimerId = null;
+            if (localStorage.getItem("gtg") !== null) return;
+            if (!passesPlancompareUrlGate()) return;
+            if (!isMobileForPlancompareRedirect()) return;
+            var q = window.location.search || "";
+            window.location.href =
+              PLANCOMPARE_BASE.replace(/\/?$/, "/") + (q || "");
+          }, PLANCOMPARE_REDIRECT_DELAY_MS);
+        }
+
+        // Always dial, even if tracking fails
+        setTimeout(() => {
+          window.location.href = phoneLink;
+        }, 150);
+      }
+    </script>
+
+    <!-- CRITICAL: Capture ALL original URL parameters IMMEDIATELY on page load -->
+    <!-- This must run before any other scripts to preserve tracking parameters -->
+    <script>
+      (function () {
+        try {
+          const originalUrl = new URL(window.location.href);
+          const originalParams = {};
+          originalUrl.searchParams.forEach((value, key) => {
+            originalParams[key] = value;
+          });
+          // ALWAYS store, even if empty (to track that we've captured)
+          sessionStorage.setItem(
+            "original_url_params",
+            JSON.stringify(originalParams),
+          );
+
+          if (Object.keys(originalParams).length > 0) {
+            console.log("Original URL parameters captured:", originalParams);
+          } else {
+            console.log("No URL parameters found on initial load");
+          }
+        } catch (e) {
+          console.error("Error capturing original URL parameters:", e);
+        }
+      })();
+    </script>
+
+    <script>
+      window.clickIdPromise = (async () => {
+        // helpers - Preserve ALL original parameters when updating URL
+        function pushParams(params) {
+          // CRITICAL: Build URL from scratch using original parameters
+          // This ensures tracking parameters are NEVER lost, even if URL was already modified
+          const storedParams = sessionStorage.getItem("original_url_params");
+          let u;
+
+          if (storedParams) {
+            try {
+              const originalParams = JSON.parse(storedParams);
+              // Start with a fresh URL using only origin + pathname (no query params)
+              // This ensures we rebuild from the original stored params, not current URL
+              u = new URL(window.location.origin + window.location.pathname);
+
+              // FORCE restore ALL original parameters first (except ones being updated)
+              // This ensures bbg_*, mb, account, angle, key, channel, etc. are always preserved
+              for (const [k, v] of Object.entries(originalParams)) {
+                // Only restore if not being updated in this call
+                if (!params.hasOwnProperty(k) && v != null && v !== "") {
+                  u.searchParams.set(k, v);
+                }
+              }
+            } catch (e) {
+              console.error("Error restoring original params:", e);
+              u = new URL(location.href);
+            }
+          } else {
+            // Fallback: use current URL if no stored params
+            u = new URL(location.href);
+          }
+
+          // Then apply new/updated parameters (these take precedence over originals)
+          for (const [k, v] of Object.entries(params)) {
+            if (v != null && v !== "") u.searchParams.set(k, v);
+          }
+
+          // Only update URL if it actually changed to avoid unnecessary history entries
+          const newUrl = u.toString();
+          if (newUrl !== location.href) {
+            history.replaceState({}, "", newUrl);
+          }
+        }
+
+        // fire clickid request
+        const clickReq = fetch("./clickid.php", {
+          method: "POST",
+          credentials: "include",
+        })
+          .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+          .catch(() => null);
+
+        const clickRes = await clickReq;
+
+        const updates = {};
+
+        // clickid
+        // Log rtkID from API response
+        if (clickRes && clickRes.debug && clickRes.debug.rtkID) {
+          console.log("rtkID from API:", clickRes.debug.rtkID);
+        }
+
+        if (clickRes && clickRes.ok && clickRes.clickid) {
+          localStorage.setItem("rt_clickid", clickRes.clickid);
+          updates.clickid = clickRes.clickid;
+        } else {
+          // fallbacks: keep URL/localStorage consistent
+          const u = new URL(location.href);
+          const fromUrl = u.searchParams.get("clickid");
+          const fromLS = localStorage.getItem("rt_clickid");
+          if (fromUrl && !fromLS) localStorage.setItem("rt_clickid", fromUrl);
+          if (!fromUrl && fromLS) updates.clickid = fromLS;
+        }
+
+        // apply all URL changes once
+        if (Object.keys(updates).length) pushParams(updates);
+      })();
+
+      // Fire gtg analysis request
+      (async () => {
+        try {
+          const gtgReq = fetch("./gtg.php?" + window.location.search, {
+            method: "GET",
+            credentials: "include",
+          })
+            .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+            .catch(() => null);
+
+          const gtgRes = await gtgReq;
+
+          if (gtgRes && gtgRes.success) {
+            if (gtgRes.gtg !== null) {
+              localStorage.setItem("gtg", gtgRes.gtg);
+            } else {
+              // Remove gtg from localStorage if it's null (legitimate traffic)
+              localStorage.removeItem("gtg");
+            }
+            // GTG analysis complete
+          } else {
+          }
+        } catch (error) {
+          console.error("GTG fetch error:", error);
+        }
+      })();
+
+      // Phone number is NOT fetched on page load (moved to qualified step only - see app.js updatePhoneNumberReactive)
+      window.phoneNumberData = null;
+
+      // Function to update phone number in DOM (reusable). phoneNumber: digits only (or will be stripped). formattedNumber: display text.
+      function updatePhoneNumberInDOM(phoneNumber, formattedNumber) {
+        const digits = String(phoneNumber).replace(/\D/g, "");
+        const phoneElement = document.getElementById("phone-number");
+        if (phoneElement && digits.length >= 10) {
+          phoneElement.href = "tel:+" + digits;
+        }
+        const phoneTextElement = document.getElementById("phone_retreaver");
+        if (phoneTextElement && formattedNumber) {
+          phoneTextElement.textContent = formattedNumber;
+        }
+      }
+
+      // Make function globally accessible
+      window.updatePhoneNumberInDOM = updatePhoneNumberInDOM;
+    </script>
+
+    <link rel="stylesheet" href="./css/app.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: #f3f1eb;
+        color: #222;
+      }
+
+      .btn-primary-alt {
+        background: #083f67;
+        border: 0;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.75rem;
+        padding: 1.75rem 1rem;
+        min-height: 5rem;
+        border-radius: 8px;
+        width: 100%;
+      }
+
+      .ux-stage {
+        opacity: 0;
+        transform: translateY(8px);
+        display: none;
+        transition:
+          opacity 0.25s ease,
+          transform 0.25s ease;
+      }
+
+      .ux-stage.is-visible {
+        display: block;
+        opacity: 1;
+        transform: none;
+      }
+
+      .form-container {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 20px 1rem;
+      }
+
+      .question-title {
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: #374151;
+      }
+
+      .button-grid {
+        display: grid;
+        gap: 0.9rem;
+        grid-template-columns: 1fr;
+        max-width: 560px;
+        margin: 0 auto;
+      }
+
+      .qualified-section {
+        text-align: center;
+        max-width: 720px;
+        margin: 1.5rem auto;
+        background: #fff;
+        border: 1px solid #d9dde2;
+        border-radius: 14px;
+        box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+        padding: 1.1rem 1.2rem 0.8rem;
+      }
+
+      .qualified-title {
+        color: #2c7a3b;
+        font-weight: 800;
+      }
+
+      .cta-dial {
+        background: #083f67;
+        color: #fff;
+        display: inline-block;
+        font-weight: 700;
+        font-size: 2.35rem;
+        width: min(520px, 100%);
+        border-radius: 10px;
+        text-decoration: none;
+        padding: 1rem 1rem;
+        line-height: 1.2;
+      }
+
+      .last-chance-text {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #4b5563;
+        margin-top: 0.8rem;
+      }
+
+      .footer {
+        margin-top: auto;
+      }
+
+      @media (max-width: 768px) {
+        .question-title {
+          font-size: 1.3rem;
+        }
+        .btn-primary-alt {
+          font-size: 1.4rem;
+          padding: 1.5rem 1rem;
+          min-height: 4.5rem;
+        }
+        .cta-dial {
+          font-size: 1.55rem;
+        }
+      }
+
+      #disqualify-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.6);
+      }
+      #disqualify-modal .modal-card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 40px 32px;
+        max-width: 360px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-MC55FSL5"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <main class="bg-[#F3F1EB] flex-1 pb-4 md:pb-6 lg:pb-20">
+      <div class="max-w-7xl mx-auto px-4 flex flex-col gap-4 md:gap-5">
+        <header>
+          <nav>
+            <div
+              class="flex flex-wrap items-center justify-center px-4 py-5 md:px-7 md:py-6 bg-white rounded-2xl shadow-sm"
+            >
+              <a class="flex items-center space-x-3 rtl:space-x-reverse">
+                <img
+                  src="./images/debt-logo.png"
+                  class="h-10 w-auto"
+                  alt="Logo"
+                />
+                <span
+                  id="company-name"
+                  class="text-sm md:text-xl lg:text-2xl font-bold"
+                ></span>
+              </a>
+            </div>
+          </nav>
+        </header>
+
+        <div class="bg-white p-5 sm:p-8 lg:px-20 lg:py-14 rounded-2xl">
+          <div
+            class="flex flex-col md:flex-row debt-consolidation-rankings gap-10 items-start w-full"
+          >
+            <div class="flex flex-col w-full">
+              <div class="multiFormQuiz">
+                <h1
+                  id="form-title"
+                  class="text-center text-2xl md:text-4xl font-bold mb-3 md:mb-6 md:text-5xl"
+                  style="color: #083f67; line-height: 1.2"
+                >
+                  Attention: 2026 Debt Relief Program Is Eliminating Debt For
+                  Americans!
+                </h1>
+
+                <main class="container py-4">
+                  <section
+                    id="stage-debt"
+                    class="ux-stage is-visible"
+                    role="region"
+                  >
+                    <div class="form-container">
+                      <h2 class="question-title">
+                        How much total credit card & personal loan debt do you
+                        have?
+                      </h2>
+                      <div class="button-grid">
+                        <button
+                          class="btn btn-lg btn-primary-alt flow-btn"
+                          data-step="1"
+                          data-value="25"
+                        >
+                          Over $25,000
+                        </button>
+                        <button
+                          class="btn btn-lg btn-primary-alt flow-btn"
+                          data-step="1"
+                          data-value="20"
+                        >
+                          Under $25,000
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section id="stage-result" class="ux-stage" role="region">
+                    <div id="qualified-section" class="qualified-section">
+                      <p
+                        class="mb-3"
+                        style="font-size: 1.25rem; font-weight: bold"
+                      >
+                        <span class="qualified-title"
+                          >Great News, You're Eligible!</span
+                        >
+                        Speak with a licensed Debt Relief agent to get enrolled!
+                      </p>
+                      <p class="text-center">
+                        <a
+                          id="phone-number"
+                          href="tel:+18887062564"
+                          onclick="trackGTG(event)"
+                          class="cta-dial"
+                        >
+                          <span id="phone_retreaver">+1 (866) 498-2822</span>
+                        </a>
+                      </p>
+                      <p class="last-chance-text">
+                        Last chance to get your spot, Call Now!
+                      </p>
+                    </div>
+                  </section>
+                </main>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Disqualification Modal (unclosable) -->
+    <div
+      id="disqualify-modal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.6);
+      "
+    >
+      <div
+        style="
+          background: #fff;
+          border-radius: 12px;
+          padding: 40px 32px;
+          max-width: 360px;
+          width: 90%;
+          text-align: center;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        "
+      >
+        <div style="font-size: 48px; margin-bottom: 16px">&#9888;</div>
+        <h2
+          style="
+            font-size: 22px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0 0 12px;
+          "
+        >
+          Sorry You Do Not Qualify
+        </h2>
+      </div>
+    </div>
+
+    <div class="footer bg-[#083f67] py-10 lg:py-20 relative">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="lg:flex gap-10">
+          <div class="text-center flex-1">
+            <a
+              class="flex items-center space-x-3 rtl:space-x-reverse justify-center pb-4"
+            >
+              <img
+                src="./images/debt-logo-light.png"
+                class="h-10 w-auto"
+                alt="Logo"
+              />
+              <span
+                id="footer-company-name-mobile"
+                class="text-sm md:text-xl lg:text-2xl font-bold text-white"
+              ></span>
+            </a>
+            <p
+              class="text-sm sm:text-base leading-normal text-white mb-6 text-center"
+            >
+              <span id="footer-company" class="font-bold"></span>
+              aims to provide accurate, up-to-date information, but details may
+              differ from those offered by financial institutions or service
+              providers. All products and services are presented "as is" without
+              warranty. Please review each institution's Terms and Conditions
+              before applying.
+              <span id="footer-disclaimer-company"></span>
+              is an independent, advertiser-supported site and may receive
+              compensation from featured partners. Some offers may not be
+              available in all states.
+            </p>
+            <div>
+              <ul class="flex flex-wrap justify-center gap-6">
+                <li>
+                  <a
+                    href="./terms.php"
+                    class="text-sm sm:text-base text-white hover:scale-105 font-bold transition-all duration-300"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Terms of Use</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="./privacy.php"
+                    class="text-sm sm:text-base text-white hover:scale-105 font-bold transition-all duration-300"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Privacy Policy</a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="./contact.php"
+                    class="text-sm sm:text-base text-white hover:scale-105 font-bold transition-all duration-300"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Contact Us</a
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- jQuery CDN -->
+    <script src="./js/jquery-3.7.1.min.js"></script>
+    <script src="./js/app.js?v=2"></script>
+    <script>
+      (function () {
+        var flowLocked = false;
+
+        function setStep(stepNumber) {
+          var formTitle = document.getElementById("form-title");
+          if (formTitle) {
+            formTitle.textContent =
+              stepNumber === 2
+                ? "Congratulations You Qualify For Debt Relief!"
+                : "Attention: 2026 Debt Relief Program Is Eliminating Debt For Americans!";
+          }
+          ["stage-debt", "stage-result"].forEach(function (id) {
+            var node = document.getElementById(id);
+            if (node) node.classList.remove("is-visible");
+          });
+          var targetId = stepNumber === 1 ? "stage-debt" : "stage-result";
+          var target = document.getElementById(targetId);
+          if (target) target.classList.add("is-visible");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+
+        function updateQueryParams(params) {
+          var url = new URL(window.location.href);
+          if (typeof preserveUrlParams === "function") {
+            url = preserveUrlParams(url);
+          }
+          Object.keys(params).forEach(function (key) {
+            url.searchParams.set(key, params[key]);
+          });
+          history.replaceState({}, "", url.toString());
+        }
+
+        function showDisqualifyModal() {
+          flowLocked = true;
+          var modal = document.getElementById("disqualify-modal");
+          if (modal) modal.style.display = "flex";
+        }
+
+        function getTrkDomainSlug() {
+          return (window.location.hostname || "").replace(/^www\./, "");
+        }
+
+        function getClickIdFromPage() {
+          var params = new URLSearchParams(window.location.search);
+          var fromUrl = params.get("clickid");
+          if (fromUrl) return fromUrl;
+          try {
+            return localStorage.getItem("rt_clickid") || "";
+          } catch (e) {
+            return "";
+          }
+        }
+
+        function fetchClickIdIfNeeded() {
+          var existing = getClickIdFromPage();
+          if (existing) return Promise.resolve(existing);
+          return fetch("./clickid.php", {
+            method: "POST",
+            credentials: "include",
+          })
+            .then(function (r) {
+              return r.ok ? r.json() : null;
+            })
+            .then(function (data) {
+              if (data && data.ok && data.clickid) {
+                try {
+                  localStorage.setItem("rt_clickid", data.clickid);
+                } catch (e) {}
+                return data.clickid;
+              }
+              return "";
+            })
+            .catch(function () {
+              return "";
+            });
+        }
+
+        function waitForClickId(maxMs, intervalMs) {
+          maxMs = maxMs || 8000;
+          intervalMs = intervalMs || 200;
+          return new Promise(function (resolve) {
+            var elapsed = 0;
+            function tick() {
+              var id = getClickIdFromPage();
+              if (id) return resolve(id);
+              if (elapsed >= maxMs) return resolve("");
+              elapsed += intervalMs;
+              setTimeout(tick, intervalMs);
+            }
+            tick();
+          });
+        }
+
+        function resolveClickId() {
+          var initial = window.clickIdPromise
+            ? window.clickIdPromise.catch(function () {})
+            : Promise.resolve();
+          return initial
+            .then(function () {
+              var id = getClickIdFromPage();
+              if (id) return id;
+              return waitForClickId();
+            })
+            .then(function (id) {
+              if (id) return id;
+              return fetchClickIdIfNeeded();
+            });
+        }
+
+        function sendDisqualifyPostback() {
+          resolveClickId().then(function (clickid) {
+            if (!clickid) {
+              console.warn("Disqualify postback skipped: no clickid available");
+              return;
+            }
+            var url =
+              "http://dx8jy.rdtk.io/postback?clickid=" +
+              encodeURIComponent(clickid) +
+              "&type=click";
+            fetch(url, {
+              method: "GET",
+              mode: "no-cors",
+              keepalive: true,
+            }).catch(function (err) {
+              console.error("Disqualify postback error:", err);
+            });
+          });
+        }
+
+        function redirectQualifiedUser(clickid) {
+          var domain = getTrkDomainSlug();
+          window.location.href =
+            "https://trk." +
+            domain +
+            "/click?clickid=" +
+            encodeURIComponent(clickid);
+        }
+
+        document.addEventListener("click", function (event) {
+          var btn = event.target.closest("button.flow-btn");
+          if (!btn || flowLocked) return;
+
+          var step = btn.getAttribute("data-step");
+          var value = btn.getAttribute("data-value");
+
+          if (step === "1") {
+            if (value === "20") {
+              updateQueryParams({ amount: value });
+              showDisqualifyModal();
+              sendDisqualifyPostback();
+              return;
+            }
+            updateQueryParams({
+              amount: value,
+              qualified: "yes",
+              employed: "yes",
+            });
+            flowLocked = true;
+            fetchClickIdIfNeeded().then(function (clickid) {
+              redirectQualifiedUser(clickid);
+            });
+          }
+        });
+
+        setStep(1);
+      })();
+    </script>
+
+    <script>
+      // Backup: Update phone number when DOM is ready (if early fetch hasn't completed)
+      document.addEventListener("DOMContentLoaded", async function () {
+        // Wait a bit to see if early fetch completed
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        // If phone number data is already available, update DOM
+        if (window.phoneNumberData) {
+          updatePhoneNumberInDOM(
+            window.phoneNumberData.phone_number,
+            window.phoneNumberData.formatted_number,
+          );
+        } else {
+          // If early fetch hasn't completed, wait for it
+          try {
+            await window.phoneNumberPromise;
+            if (window.phoneNumberData) {
+              updatePhoneNumberInDOM(
+                window.phoneNumberData.phone_number,
+                window.phoneNumberData.formatted_number,
+              );
+            }
+          } catch (error) {
+            console.error("Error in backup phone number update:", error);
+          }
+        }
+      });
+    </script>
+
+    <script>
+      (function () {
+        let domainName = window.location.hostname;
+        domainName = domainName.replace(/^www\./, "");
+        domainName = domainName.toUpperCase();
+        var ids = [
+          "company-name",
+          "footer-company",
+          "footer-disclaimer-company",
+          "footer-company-name-mobile",
+        ];
+        ids.forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.textContent = domainName;
+        });
+      })();
+    </script>
+  </body>
+</html>
